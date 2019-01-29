@@ -6,10 +6,25 @@ WORKDIR /
 RUN apk update && \
     apk upgrade
 
+# Install supervisor services
+RUN apk add --no-cache supervisor
+ADD configs/supervisord.conf /etc/supervisord.conf
+
+# Install AVAHI mDNS/DNS-SD protocol suite
+RUN apk add --no-cache avahi
+ADD configs/avahi-daemon.conf /etc/avahi/avahi-daemon.conf
+EXPOSE 5353/udp
+
 # Install SAMBA
 RUN apk add --no-cache samba-common-tools samba-client samba
+ADD configs/smb.conf /etc/samba/smb.conf
+EXPOSE 137/udp 138/udp 139 445
+
 # Install NETATALK
 RUN apk add --no-cache netatalk
+ADD configs/afp.conf /etc/afp.conf
+EXPOSE 548
+
 # Install RCLONE
 RUN apk add --no-cache curl unzip
 RUN curl -O https://downloads.rclone.org/rclone-current-linux-amd64.zip && \
@@ -23,9 +38,17 @@ RUN curl -O https://downloads.rclone.org/rclone-current-linux-amd64.zip && \
 RUN rm -rf /var/cache/apk/*
 
 # Add local script files
-ADD scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
-ADD scripts/manage.sh /usr/local/bin/manage.sh
+#ADD scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+#ADD scripts/manage.sh /usr/local/bin/manage.sh
 
-# Defibe entry point and run it
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD /usr/local/bin/entrypoint.sh
+# Define entrypoint
+#ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+#CMD /usr/local/bin/entrypoint.sh
+
+# Another entrypoint
+#ENTRYPOINT ["smbd", "--foreground", "--log-stdout"]
+#CMD []
+
+ENTRYPOINT ["supervisord", "-c", "/etc/supervisord.conf"]
+
+CMD []
